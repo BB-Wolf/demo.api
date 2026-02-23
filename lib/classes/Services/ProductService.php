@@ -17,11 +17,11 @@ class ProductService
         $this->storeService = $storeService;
     }
 
-    public function getSingleProductByID(int $id)
+    public function getSingleProductByID(int $id): array
     {
-        $getData = $this->productRepository->getSingleProductByID($id);
+        $getData = $this->productRepository->setFilter(['IBLOCK_ID' => 4])->getSingleProductByID($id);
         if (empty($getData)) {
-            return Response::error(json_encode(['message' => 'Товар не найден']));
+            return Response::error(json_encode(['message' => 'Товар не найден']))->toArray();
         }
 
         $quantity = $this->storeService->getItemStock($id);
@@ -31,7 +31,7 @@ class ProductService
             $properties[strtolower($code)] = $values[0]['VALUE'];
         }
 
-        $item = [
+        $item['item'] = [
             'id' => (int)$getData['ID'],
             'name' => $getData['NAME'],
             'description' => $getData['PREVIEW_TEXT'],
@@ -54,7 +54,8 @@ class ProductService
             'updated_at' => date('c', strtotime($getData['TIMESTAMP_X']))
         ];
 
-        return Response::success(json_encode($item));
+
+        return $item;
     }
 
     public function getSingleProductByXMLID(string $xmlID)
@@ -106,6 +107,7 @@ class ProductService
         $getData = $this->productRepository->getAll($filter);
 
         $items = [];
+
         foreach ($getData as $data) {
             $items[] = [
                 'id' => (int)$data['ID'],
@@ -122,7 +124,7 @@ class ProductService
             ];
         }
 
-        return Response::success(json_encode([
+        return [
             'items' => $items,
             'pagination' => [
                 'total' => (int)$total,
@@ -130,6 +132,6 @@ class ProductService
                 'limit' => (int)$limit,
                 'pages' => (int)$pages
             ]
-        ]));
+        ];
     }
 }

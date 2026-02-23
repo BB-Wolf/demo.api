@@ -55,19 +55,44 @@ class ProductController extends \Bitrix\Main\Engine\Controller
 
         $productRepository = new \Demo\Api\Classes\Repositories\ProductRepository([], $limit, 0, $sort);
         $productService = new ProductService($productRepository, new \Demo\Api\Classes\Services\StoreService(new \Demo\Api\Classes\Repositories\StoreRepository()));
+        try {
+            $filter['IBLOCK_ID'] = 4;
+            $result = $productService->getProducts($filter, $limit, $page);
+            if (!empty($result)) {
+                $response = Response::success(json_encode($result), 200);
+                $response = $response->toArray();
+            } else {
+                $response = Response::error('empty', 200);
+            }
+        } catch (\Exception $e) {
+            $response = Response::error($e->getMessage(), 200);
+        }
 
-        return $productService->getProducts($filter, $limit, $page);
+
+        return new \Bitrix\Main\Engine\Response\Json($response);
     }
 
     public function getSingleProductByIDAction(int $id)
     {
         $productService = new ProductService(new \Demo\Api\Classes\Repositories\ProductRepository(), new \Demo\Api\Classes\Services\StoreService(new \Demo\Api\Classes\Repositories\StoreRepository()));
-        return $productService->getSingleProductByID($id);
+        try {
+            $result = $productService->getSingleProductByID($id);
+            if (!empty($result)) {
+                $response = Response::success(json_encode($result), 200);
+                $response = $response->toArray();
+            } else {
+                $response = Response::error('empty', 200);
+            }
+        } catch (\Exception $e) {
+            $response = Response::error($e->getMessage(), 200);
+        }
+        return new \Bitrix\Main\Engine\Response\Json($response);
     }
 
     public function getSingleProductByXMLIDAction(string $xmlID)
     {
         $productService = new ProductService(new \Demo\Api\Classes\Repositories\ProductRepository(), new \Demo\Api\Classes\Services\StoreService(new \Demo\Api\Classes\Repositories\StoreRepository()));
-        return $productService->getSingleProductByXMLID($xmlID);
+        $result = $productService->getSingleProductByXMLID($xmlID);
+        return new \Bitrix\Main\Engine\Response\Json($result);
     }
 }

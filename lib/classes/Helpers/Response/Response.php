@@ -5,13 +5,13 @@ namespace Demo\Api\Classes\Helpers\Response;
 class Response
 {
     private string $status;
-    private string $text;
+    private string $data;
     private string $errorCode;
 
     public function __construct(string $status = 'ok', string $text = '', string $errorCode = '')
     {
         $this->setStatus($status);
-        $this->text = $text;
+        $this->data = $text;
         $this->errorCode = $errorCode;
     }
 
@@ -28,7 +28,7 @@ class Response
 
     public function setText(string $text): void
     {
-        $this->text = $text;
+        $this->data = $text;
     }
 
     public function setErrorCode(string $errorCode): void
@@ -57,7 +57,7 @@ class Response
         return [
             'error_code' => $this->errorCode,
             'status' => $this->status,
-            'text' => $this->text,
+            'data' => $this->data,
         ];
     }
 
@@ -66,7 +66,7 @@ class Response
         return json_encode([
             'error_code' => $this->errorCode,
             'status' => $this->status,
-            'text' => $this->text,
+            'data' => $this->data,
         ], JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
     }
 }

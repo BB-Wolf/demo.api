@@ -32,63 +32,61 @@ class ProductRepository
 
     public function getAll(array $filter = []): array
     {
-        $runtime = [
-            'ELEMENTPROPS' => [
-                'data_type' => \Bitrix\Iblock\ElementPropertyTable::class,
-                'reference' => ['=this.ID' => 'ref.IBLOCK_ELEMENT_ID']
-            ],
-            'PROPS' => [
-                'data_type' => \Bitrix\Iblock\PropertyTable::class,
-                'reference' => ['=this.ELEMENTPROPS.IBLOCK_PROPERTY_ID' => 'ref.ID']
-            ],
-        ];
-
         $products = $this->repository::getList([
-            'select' => [
-                'ID',
-                'NAME',
-                'PREVIEW_TEXT',
-                'IBLOCK_SECTION_ID',
-                'PROP_ID'    => 'ELEMENTPROPS.IBLOCK_PROPERTY_ID',
-                'PROP_VALUE' => 'ELEMENTPROPS.VALUE',
-                'PROP_CODE'  => 'PROPS.CODE',
-                'PROP_NAME'  => 'PROPS.NAME',
-            ],
+            'select' => ['ID', 'NAME', 'PREVIEW_TEXT', 'IBLOCK_SECTION_ID'],
             'filter' => array_merge($this->filter, $filter),
             'limit'  => $this->limit,
             'offset' => $this->offset,
             'order'  => $this->sort,
-            'runtime' => $runtime,
-            'cache' => [
-                'ttl' => 300,
-                'cache_joins' => true
-            ]
         ]);
 
         $result = [];
-        $rows = $products->fetchAll();
+        $ids = [];
 
-        foreach ($rows as $row) {
+        while ($row = $products->fetch()) {
+            $result[$row['ID']] = $row + ['PROPERTIES' => []];
+            $ids[] = $row['ID'];
+        }
+        try {
+            $props = \Bitrix\Iblock\ElementPropertyTable::getList([
+                'select' => [
+                    'IBLOCK_ELEMENT_ID',
+                    'VALUE',
+                    'PROPERTY_CODE' => 'PROP.CODE',
+                    'PROPERTY_NAME' => 'PROP.NAME',
+                ],
+                'filter' => [
+                    '=IBLOCK_ELEMENT_ID' => $ids
+                ],
+                'runtime' => [
+                    'PROP' => [
+                        'data_type' => \Bitrix\Iblock\PropertyTable::class,
+                        'reference' => ['=this.IBLOCK_PROPERTY_ID' => 'ref.ID']
+                    ]
+                ]
+            ]);
 
-            $id = $row['ID'];
+            while ($row = $props->fetch()) {
 
-            if (!isset($result[$id])) {
-                $result[$id] = [
-                    'ID' => $row['ID'],
-                    'NAME' => $row['NAME'],
-                    'PREVIEW_TEXT' => $row['PREVIEW_TEXT'],
-                    'IBLOCK_SECTION_ID' => $row['IBLOCK_SECTION_ID'],
-                    'PROPERTIES' => []
+                $elementId = $row['IBLOCK_ELEMENT_ID'];
+
+                if (!isset($result[$elementId])) {
+                    continue; // на всякий случай
+                }
+
+                $code = $row['PROPERTY_CODE'];
+
+                if (!$code) {
+                    continue;
+                }
+
+                $result[$elementId]['PROPERTIES'][$code][] = [
+                    'NAME'  => $row['PROPERTY_NAME'],
+                    'VALUE' => $row['VALUE'],
                 ];
             }
-
-            if ($row['PROP_CODE']) {
-                $result[$id]['PROPERTIES'][$row['PROP_CODE']][] = [
-                    'ID' => $row['PROP_ID'],
-                    'NAME' => $row['PROP_NAME'],
-                    'VALUE' => $row['PROP_VALUE'],
-                ];
-            }
+        } catch (\Exception $e) {
+            return ['error' => $e->getMessage()];
         }
 
         return array_values($result);
@@ -96,17 +94,18 @@ class ProductRepository
 
     public function getSingleProductByID(int $id): array
     {
+
         $runtime =
             [
                 'ELEMENTPROPS' =>
                 [
                     'data_type' => \Bitrix\Iblock\ElementPropertyTable::class,
-                    'reference' => ['=this.ID' => '=ref.IBLOCK_ELEMENT_ID']
+                    'reference' => ['=this.ID' => 'ref.IBLOCK_ELEMENT_ID']
                 ],
                 'PROPS' =>
                 [
                     'data_type' => \Bitrix\Iblock\PropertyTable::class,
-                    'reference' => ['=this.ELEMENTPROPS.IBLOCK_PROPERTY_ID' => '=ref.ID']
+                    'reference' => ['=this.ELEMENTPROPS.IBLOCK_PROPERTY_ID' => 'ref.ID']
                 ],
             ];
 
